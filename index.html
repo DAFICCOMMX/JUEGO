@@ -3,262 +3,392 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Duelo de Neón</title>
+    <title>Arcade Neón</title>
     <style>
-        /* --- ESTILOS (CSS) --- */
+        /* --- ESTILOS GENERALES --- */
         body {
-            margin: 0;
-            padding: 0;
-            background-color: #121212;
-            font-family: 'Arial', sans-serif;
-            overflow: hidden; /* Evita scroll */
-            user-select: none; /* Evita seleccionar texto al hacer clic rápido */
+            margin: 0; padding: 0;
+            background-color: #0d0d0d;
+            font-family: 'Courier New', Courier, monospace;
+            overflow: hidden;
+            color: white;
+            user-select: none;
+            text-align: center;
         }
 
-        #game-container {
-            display: flex;
-            flex-direction: column;
+        /* --- PANTALLAS --- */
+        .screen {
+            display: none;
             height: 100vh;
             width: 100%;
-        }
-
-        /* Área de puntuación y Barra central */
-        #status-bar {
-            height: 15%;
-            display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            position: relative;
-            background: #1a1a1a;
-            border-bottom: 2px solid #333;
-        }
-
-        h1 {
-            color: white;
-            font-size: 1.2rem;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            z-index: 2;
-        }
-
-        /* La barra de "Tira y Afloja" */
-        #progress-container {
             position: absolute;
-            bottom: 0;
-            left: 0;
-            height: 10px;
-            width: 100%;
-            background: #333;
+            top: 0; left: 0;
+            background: #0d0d0d;
+        }
+        
+        .active-screen { display: flex; z-index: 10; }
+
+        /* --- PANTALLA DE REGISTRO (SETUP) --- */
+        .input-group { margin: 15px 0; width: 80%; max-width: 300px; text-align: left; }
+        label { color: #888; font-size: 0.8rem; display: block; margin-bottom: 5px; }
+        input {
+            width: 100%; padding: 10px;
+            background: #222; border: 2px solid #444; color: white;
+            font-family: inherit; font-size: 1.2rem; outline: none;
+            border-radius: 5px; box-sizing: border-box; text-align: center;
+        }
+        input:focus { border-color: #00e5ff; box-shadow: 0 0 10px #00e5ff; }
+
+        .start-btn {
+            background: linear-gradient(45deg, #ff0055, #00e5ff);
+            border: none; color: white; padding: 15px 50px;
+            font-size: 1.5rem; font-weight: bold; cursor: pointer;
+            border-radius: 30px; margin-top: 20px;
+            box-shadow: 0 0 20px rgba(0, 229, 255, 0.5);
+            opacity: 0.5; pointer-events: none; /* Desactivado por defecto */
+            transition: 0.3s;
+        }
+        .start-btn.ready { opacity: 1; pointer-events: all; }
+
+        /* --- MENÚ PRINCIPAL --- */
+        h1 { font-size: 2.5rem; text-shadow: 0 0 10px #fff, 0 0 20px #ff00de; margin-bottom: 30px; }
+        .menu-btn {
+            background: transparent; border: 2px solid #00e5ff; color: #00e5ff;
+            padding: 15px 0; font-size: 1.1rem; margin: 10px; cursor: pointer;
+            border-radius: 5px; text-transform: uppercase; font-weight: bold;
+            box-shadow: 0 0 10px #00e5ff; transition: 0.2s; width: 80%; max-width: 300px;
+        }
+        .menu-btn:hover { background: #00e5ff; color: #000; box-shadow: 0 0 20px #00e5ff; }
+        
+        /* Botón Volver */
+        #back-btn {
+            position: absolute; top: 10px; left: 10px;
+            background: #333; color: white; border: none; padding: 8px 15px;
+            cursor: pointer; z-index: 100; font-size: 0.9rem; border-radius: 5px;
         }
 
-        #progress-fill {
-            height: 100%;
-            width: 50%; /* Empieza al medio */
-            background: linear-gradient(90deg, #ff0055 0%, #00e5ff 100%);
-            transition: width 0.1s ease-out;
-        }
+        /* --- ESTILOS COMUNES JUEGOS --- */
+        .player-zone { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; position: relative; width: 100%; }
+        .p1-color { color: #ff0055; }
+        .p2-color { color: #00e5ff; }
+        
+        /* JUEGO 1: DUELO */
+        #neon-game-container { flex: 1; width: 100%; display: flex; flex-direction: column; }
+        #status-bar { height: 15%; display: flex; justify-content: center; align-items: center; background: #1a1a1a; position: relative; }
+        #progress-container { position: absolute; bottom: 0; left: 0; height: 10px; width: 100%; background: #333; }
+        #progress-fill { height: 100%; width: 50%; background: linear-gradient(90deg, #ff0055 0%, #00e5ff 100%); transition: width 0.1s; }
+        #p1-zone { background: rgba(255, 0, 85, 0.1); border-right: 1px solid #333; }
+        #p1-zone.active { background: rgba(255, 0, 85, 0.4); }
+        #p2-zone { background: rgba(0, 229, 255, 0.1); }
+        #p2-zone.active { background: rgba(0, 229, 255, 0.4); }
 
-        /* Área de juego principal */
-        #play-area {
-            flex: 1;
-            display: flex;
-            width: 100%;
+        /* JUEGO 2: GATO */
+        #tictactoe-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; }
+        .cell { width: 80px; height: 80px; background: #222; border: 2px solid #444; display: flex; align-items: center; justify-content: center; font-size: 3rem; cursor: pointer; }
+        
+        /* JUEGO 3: BASTA */
+        #letter-display {
+            font-size: 8rem; font-weight: bold; color: yellow;
+            text-shadow: 0 0 20px yellow; margin: 20px 0;
+            min-height: 150px; display: flex; align-items: center; justify-content: center;
         }
-
-        /* Botones de los jugadores */
-        .player-zone {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: background 0.1s;
-            position: relative;
+        .basta-btn {
+            width: 90%; padding: 20px; font-size: 1.5rem; font-weight: bold;
+            margin: 10px 0; border: none; border-radius: 10px; cursor: pointer;
+            text-transform: uppercase; opacity: 0.5; pointer-events: none;
         }
-
-        /* Jugador 1 (Rojo/Izquierda) */
-        #p1-zone {
-            background-color: rgba(255, 0, 85, 0.1);
-            border-right: 1px solid #333;
-        }
-        #p1-zone:active, #p1-zone.active {
-            background-color: rgba(255, 0, 85, 0.4);
-            box-shadow: inset 0 0 20px #ff0055;
-        }
-        .p1-text { color: #ff0055; }
-
-        /* Jugador 2 (Azul/Derecha) */
-        #p2-zone {
-            background-color: rgba(0, 229, 255, 0.1);
-        }
-        #p2-zone:active, #p2-zone.active {
-            background-color: rgba(0, 229, 255, 0.4);
-            box-shadow: inset 0 0 20px #00e5ff;
-        }
-        .p2-text { color: #00e5ff; }
-
-        /* Textos e Instrucciones */
-        .instruction {
-            font-size: 1rem;
-            font-weight: bold;
-            text-align: center;
-            margin-bottom: 10px;
-        }
-        .key-hint {
-            font-size: 2rem;
-            border: 2px solid currentColor;
-            padding: 10px 20px;
-            border-radius: 10px;
-            opacity: 0.7;
-        }
-
-        /* Pantalla de Ganador */
+        .basta-active { opacity: 1; pointer-events: all; transform: scale(1.05); }
+        
+        /* MODAL */
         #modal {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9);
-            display: none; /* Oculto por defecto */
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 10;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); display: none;
+            flex-direction: column; align-items: center; justify-content: center; z-index: 200;
         }
-        #winner-text {
-            font-size: 3rem;
-            font-weight: bold;
-            color: white;
-            margin-bottom: 20px;
-            text-shadow: 0 0 10px white;
-        }
-        button {
-            padding: 15px 30px;
-            font-size: 1.2rem;
-            cursor: pointer;
-            background: white;
-            border: none;
-            border-radius: 5px;
-            font-weight: bold;
-        }
-        button:hover { background: #ddd; }
-
     </style>
 </head>
 <body>
 
-    <div id="modal">
-        <div id="winner-text">¡GANA JUGADOR 1!</div>
-        <button onclick="resetGame()">Jugar de nuevo</button>
+    <button id="back-btn" onclick="showMenu()" style="display:none;">⬅ Menú</button>
+
+    <div id="setup-screen" class="screen active-screen">
+        <h1 style="font-size: 2rem;">IDENTIFICACIÓN</h1>
+        <div class="input-group">
+            <label>JUGADOR 1 (ROJO)</label>
+            <input type="text" id="input-p1" placeholder="Nombre..." oninput="checkInputs()" maxlength="10">
+        </div>
+        <div class="input-group">
+            <label>JUGADOR 2 (AZUL)</label>
+            <input type="text" id="input-p2" placeholder="Nombre..." oninput="checkInputs()" maxlength="10">
+        </div>
+        <button id="start-app-btn" class="start-btn" onclick="saveNames()">ENTRAR</button>
     </div>
 
-    <div id="game-container">
-        <div id="status-bar">
-            <h1>Duelo de Neón</h1>
-            <div id="progress-container">
-                <div id="progress-fill"></div>
+    <div id="menu-screen" class="screen">
+        <h1>ARCADE<br>NEÓN</h1>
+        <div id="welcome-msg" style="color:#aaa; margin-bottom:20px;"></div>
+        <button class="menu-btn" onclick="startNeonDuel()">1. Duelo de Neón</button>
+        <button class="menu-btn" onclick="startTicTacToe()">2. Gato (X vs O)</button>
+        <button class="menu-btn" onclick="startBasta()">3. Basta (Stop)</button>
+    </div>
+
+    <div id="neon-screen" class="screen">
+        <div id="neon-game-container">
+            <div id="status-bar">
+                <h2>¡EMPUJA!</h2>
+                <div id="progress-container"><div id="progress-fill"></div></div>
+            </div>
+            <div id="play-area">
+                <div id="p1-zone" class="player-zone" ontouchstart="neonInput(1)" onclick="neonInput(1)">
+                    <div class="p1-text name-p1-display" style="font-weight:bold; font-size:1.5rem;">P1</div>
+                    <div>(Toca rápido)</div>
+                </div>
+                <div id="p2-zone" class="player-zone" ontouchstart="neonInput(2)" onclick="neonInput(2)">
+                    <div class="p2-text name-p2-display" style="font-weight:bold; font-size:1.5rem;">P2</div>
+                    <div>(Toca rápido)</div>
+                </div>
             </div>
         </div>
+    </div>
 
-        <div id="play-area">
-            <div id="p1-zone" class="player-zone" ontouchstart="handleInput(1)" onclick="handleInput(1)">
-                <div class="instruction p1-text">JUGADOR 1</div>
-                <div class="key-hint p1-text">Tecla 'A'</div>
-                <div style="font-size: 0.8rem; color: #aaa; margin-top:5px;">(o toca aquí)</div>
-            </div>
-
-            <div id="p2-zone" class="player-zone" ontouchstart="handleInput(2)" onclick="handleInput(2)">
-                <div class="instruction p2-text">JUGADOR 2</div>
-                <div class="key-hint p2-text">Tecla 'L'</div>
-                <div style="font-size: 0.8rem; color: #aaa; margin-top:5px;">(o toca aquí)</div>
-            </div>
+    <div id="tictac-screen" class="screen">
+        <h2 class="p2-color">GATO NEÓN</h2>
+        <div id="ttt-status" style="font-size:1.2rem; margin-bottom:10px;"></div>
+        <div id="tictactoe-board">
+            <div class="cell" onclick="makeMove(0)"></div><div class="cell" onclick="makeMove(1)"></div><div class="cell" onclick="makeMove(2)"></div>
+            <div class="cell" onclick="makeMove(3)"></div><div class="cell" onclick="makeMove(4)"></div><div class="cell" onclick="makeMove(5)"></div>
+            <div class="cell" onclick="makeMove(6)"></div><div class="cell" onclick="makeMove(7)"></div><div class="cell" onclick="makeMove(8)"></div>
         </div>
+        <button class="menu-btn" style="margin-top:20px; width:auto;" onclick="resetTicTacToe()">Reiniciar</button>
+    </div>
+
+    <div id="basta-screen" class="screen">
+        <h2 style="color:yellow;">JUEGO DE BASTA</h2>
+        <div style="font-size:0.9rem; color:#aaa;">Presiona "Girar Letra" y piensa rápido.</div>
+        
+        <div id="letter-display">?</div>
+        
+        <button class="menu-btn" id="spin-btn" onclick="spinLetter()" style="border-color:yellow; color:yellow;">GIRAR LETRA</button>
+
+        <div style="width:100%; display:flex; flex-direction:column; align-items:center; margin-top:20px;">
+            <button id="basta-p1" class="basta-btn" style="background:#ff0055; color:white;" onclick="bastaWin(1)">¡BASTA <span class="name-p1-display"></span>!</button>
+            <button id="basta-p2" class="basta-btn" style="background:#00e5ff; color:black;" onclick="bastaWin(2)">¡BASTA <span class="name-p2-display"></span>!</button>
+        </div>
+    </div>
+
+    <div id="modal">
+        <div id="winner-text" style="font-size:2rem; font-weight:bold; color:white; margin-bottom:20px; text-align:center;"></div>
+        <button class="menu-btn" style="background:white; color:black; border:none;" onclick="closeModal()">Continuar</button>
     </div>
 
     <script>
-        /* --- LÓGICA DEL JUEGO (JS) --- */
-        
-        // Estado del juego
-        let score = 50; // 0 = Gana P1, 100 = Gana P2. Empieza en 50.
-        let gameActive = true;
-        
-        // Configuración de dificultad (cuánto empuja cada clic)
-        const PUSH_POWER = 3; 
+        /* --- VARIABLES GLOBALES --- */
+        let p1Name = "";
+        let p2Name = "";
+        let currentGame = null;
 
-        // Referencias al DOM
-        const fill = document.getElementById('progress-fill');
-        const modal = document.getElementById('modal');
-        const winnerText = document.getElementById('winner-text');
-        const p1Zone = document.getElementById('p1-zone');
-        const p2Zone = document.getElementById('p2-zone');
-
-        // Escuchar teclado
-        document.addEventListener('keydown', (e) => {
-            if (!gameActive) return;
-
-            // Jugador 1 usa la tecla 'A' o 'a'
-            if (e.key === 'a' || e.key === 'A') {
-                handleInput(1);
-                highlightZone(p1Zone);
-            }
-            // Jugador 2 usa la tecla 'L' o 'l'
-            else if (e.key === 'l' || e.key === 'L') {
-                handleInput(2);
-                highlightZone(p2Zone);
-            }
-        });
-
-        // Función principal de movimiento
-        function handleInput(player) {
-            if (!gameActive) return;
-
-            if (player === 1) {
-                score -= PUSH_POWER; // Mueve la barra a la izquierda
+        /* --- 1. SETUP Y NOMBRES --- */
+        function checkInputs() {
+            const i1 = document.getElementById('input-p1').value.trim();
+            const i2 = document.getElementById('input-p2').value.trim();
+            const btn = document.getElementById('start-app-btn');
+            
+            // Si ambos tienen texto, activa el botón
+            if(i1.length > 0 && i2.length > 0) {
+                btn.classList.add('ready');
             } else {
-                score += PUSH_POWER; // Mueve la barra a la derecha
-            }
-
-            updateDisplay();
-            checkWin();
-        }
-
-        // Efecto visual al presionar tecla
-        function highlightZone(element) {
-            element.classList.add('active');
-            setTimeout(() => element.classList.remove('active'), 100);
-        }
-
-        // Actualizar la barra gráfica
-        function updateDisplay() {
-            // Limitar score visualmente entre 0 y 100
-            let displayScore = Math.max(0, Math.min(100, score));
-            fill.style.width = displayScore + '%';
-        }
-
-        // Comprobar si alguien ganó
-        function checkWin() {
-            if (score <= 0) {
-                endGame("¡GANA JUGADOR 1!", "#ff0055");
-            } else if (score >= 100) {
-                endGame("¡GANA JUGADOR 2!", "#00e5ff");
+                btn.classList.remove('ready');
             }
         }
 
-        // Terminar juego
-        function endGame(text, color) {
-            gameActive = false;
-            winnerText.innerText = text;
-            winnerText.style.color = color;
-            winnerText.style.textShadow = `0 0 20px ${color}`;
-            modal.style.display = 'flex';
+        function saveNames() {
+            const i1 = document.getElementById('input-p1').value.trim();
+            const i2 = document.getElementById('input-p2').value.trim();
+
+            if(!i1 || !i2) return; // Seguridad extra
+
+            p1Name = i1;
+            p2Name = i2;
+
+            // Actualizar interfaz con nombres reales
+            document.querySelectorAll('.name-p1-display').forEach(el => el.innerText = p1Name);
+            document.querySelectorAll('.name-p2-display').forEach(el => el.innerText = p2Name);
+            document.getElementById('welcome-msg').innerText = `${p1Name} vs ${p2Name}`;
+
+            showMenu();
         }
 
-        // Reiniciar juego
-        function resetGame() {
-            score = 50;
-            gameActive = true;
-            updateDisplay();
-            modal.style.display = 'none';
+        /* --- NAVEGACIÓN --- */
+        function showMenu() {
+            currentGame = null;
+            hideAll();
+            document.getElementById('menu-screen').classList.add('active-screen');
+            document.getElementById('back-btn').style.display = 'none';
         }
+
+        function hideAll() {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
+        }
+
+        function openGame(screenId, gameId) {
+            currentGame = gameId;
+            hideAll();
+            document.getElementById(screenId).classList.add('active-screen');
+            document.getElementById('back-btn').style.display = 'block';
+        }
+
+        function showWinner(text, color) {
+            const m = document.getElementById('modal');
+            const t = document.getElementById('winner-text');
+            t.innerText = text;
+            t.style.color = color;
+            t.style.textShadow = `0 0 20px ${color}`;
+            m.style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('modal').style.display = 'none';
+            if(currentGame === 'neon') resetNeon();
+            if(currentGame === 'tictac') resetTicTacToe();
+            if(currentGame === 'basta') resetBastaUI();
+        }
+
+        /* --- JUEGO 1: DUELO NEÓN --- */
+        let neonScore = 50;
+        function startNeonDuel() {
+            openGame('neon-screen', 'neon');
+            resetNeon();
+        }
+        function resetNeon() {
+            neonScore = 50;
+            document.getElementById('progress-fill').style.width = '50%';
+        }
+        function neonInput(player) {
+            if(currentGame !== 'neon') return;
+            // Efecto
+            const z = player === 1 ? document.getElementById('p1-zone') : document.getElementById('p2-zone');
+            z.classList.add('active');
+            setTimeout(() => z.classList.remove('active'), 100);
+            
+            // Lógica
+            neonScore += (player === 1 ? -4 : 4);
+            let display = Math.max(0, Math.min(100, neonScore));
+            document.getElementById('progress-fill').style.width = display + '%';
+
+            if(neonScore <= 0) showWinner(`¡${p1Name} GANA!`, '#ff0055');
+            if(neonScore >= 100) showWinner(`¡${p2Name} GANA!`, '#00e5ff');
+        }
+
+        /* --- JUEGO 2: GATO (TIC TAC TOE) --- */
+        let tttBoard = ['', '', '', '', '', '', '', '', ''];
+        let tttTurn = 'X';
+        let tttActive = true;
+        const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+
+        function startTicTacToe() {
+            openGame('tictac-screen', 'tictac');
+            resetTicTacToe();
+        }
+        function resetTicTacToe() {
+            tttBoard.fill('');
+            tttTurn = 'X';
+            tttActive = true;
+            document.querySelectorAll('.cell').forEach(c => { c.innerText = ''; c.style.background = '#222'; });
+            updateTTTStatus();
+        }
+        function updateTTTStatus() {
+            const name = tttTurn === 'X' ? p1Name : p2Name;
+            const color = tttTurn === 'X' ? '#ff0055' : '#00e5ff';
+            const statusEl = document.getElementById('ttt-status');
+            statusEl.innerText = `Turno: ${name}`;
+            statusEl.style.color = color;
+        }
+        function makeMove(i) {
+            if(!tttActive || tttBoard[i] !== '') return;
+            tttBoard[i] = tttTurn;
+            const cell = document.querySelectorAll('.cell')[i];
+            cell.innerText = tttTurn;
+            cell.style.color = tttTurn === 'X' ? '#ff0055' : '#00e5ff';
+            
+            checkTTTWin();
+            if(tttActive) {
+                tttTurn = tttTurn === 'X' ? 'O' : 'X';
+                updateTTTStatus();
+            }
+        }
+        function checkTTTWin() {
+            let won = false;
+            for(let combo of wins) {
+                const [a,b,c] = combo;
+                if(tttBoard[a] && tttBoard[a] === tttBoard[b] && tttBoard[a] === tttBoard[c]) {
+                    won = true;
+                    // Resaltar ganadores
+                    const cells = document.querySelectorAll('.cell');
+                    [a,b,c].forEach(idx => cells[idx].style.background = '#444');
+                }
+            }
+            if(won) {
+                tttActive = false;
+                const winnerName = tttTurn === 'X' ? p1Name : p2Name;
+                const color = tttTurn === 'X' ? '#ff0055' : '#00e5ff';
+                setTimeout(() => showWinner(`¡${winnerName} GANA!`, color), 500);
+            } else if(!tttBoard.includes('')) {
+                setTimeout(() => showWinner('¡EMPATE!', '#fff'), 500);
+            }
+        }
+
+        /* --- JUEGO 3: BASTA (STOP) --- */
+        const alphabet = "ABCDEFGHIJLMNOPQRSTUVWXYZ";
+        let spinInterval;
+
+        function startBasta() {
+            openGame('basta-screen', 'basta');
+            resetBastaUI();
+        }
+
+        function resetBastaUI() {
+            document.getElementById('letter-display').innerText = "?";
+            document.getElementById('spin-btn').style.display = 'inline-block';
+            document.getElementById('basta-p1').classList.remove('basta-active');
+            document.getElementById('basta-p2').classList.remove('basta-active');
+        }
+
+        function spinLetter() {
+            const display = document.getElementById('letter-display');
+            document.getElementById('spin-btn').style.display = 'none'; // Ocultar botón girar
+            
+            let counter = 0;
+            // Efecto ruleta
+            spinInterval = setInterval(() => {
+                display.innerText = alphabet[Math.floor(Math.random() * alphabet.length)];
+                counter++;
+                if(counter > 20) {
+                    clearInterval(spinInterval);
+                    finalizeLetter();
+                }
+            }, 100);
+        }
+
+        function finalizeLetter() {
+            const display = document.getElementById('letter-display');
+            const finalChar = alphabet[Math.floor(Math.random() * alphabet.length)];
+            display.innerText = finalChar;
+            display.style.color = "#00ff00"; // Verde para indicar inicio
+            
+            // Activar botones de BASTA
+            document.getElementById('basta-p1').classList.add('basta-active');
+            document.getElementById('basta-p2').classList.add('basta-active');
+        }
+
+        function bastaWin(player) {
+            const winnerName = player === 1 ? p1Name : p2Name;
+            const color = player === 1 ? '#ff0055' : '#00e5ff';
+            showWinner(`¡PUNTO PARA ${winnerName}!`, color);
+        }
+
     </script>
 </body>
 </html>
