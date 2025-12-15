@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Duelo Online</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        body {
+            margin: 0; padding: 0;
+            background-color: #0d0d0d;
+            font-family: 'Courier New', Courier, monospace;
+            color: white;
+            overflow: hidden;
+            text-align: center;
+        }
+        
+        /* PANTALLAS */
+        #menu-screen, #game-screen {
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100vh;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+        }
+        #game-screen { display: none; }
+
+        /* MENÚ */
+        h1 { text-shadow: 0 0 15px #00e5ff; margin-bottom: 20px; }
+        input {
+            padding: 10px; font-size: 1.2rem; text-align: center;
+            background: #222; border: 2px solid #555; color: white;
+            margin-bottom: 10px; width: 200px;
+        }
+        button {
+            padding: 15px 30px; font-size: 1.2rem; cursor: pointer;
+            background: #00e5ff; border: none; font-weight: bold;
+            margin: 10px; width: 220px;
+        }
+        button.secondary { background: #ff0055; color: white; }
+        
+        /* JUEGO */
+        #status-bar { position: absolute; top: 0; width: 100%; height: 15%; background: #1a1a1a; display: flex; justify-content: center; align-items: center; }
+        #progress-bg { position: absolute; bottom: 0; width: 100%; height: 10px; background: #333; }
+        #progress-fill { width: 50%; height: 100%; background: linear-gradient(90deg, #ff0055, #00e5ff); transition: width 0.1s; }
+        
+        #btn-push {
+            width: 200px; height: 200px;
+            border-radius: 50%;
+            border: 5px solid white;
+            background: rgba(255,255,255,0.1);
+            color: white; font-size: 2rem; font-weight: bold;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; user-select: none;
+            box-shadow: 0 0 30px rgba(255,255,255,0.2);
+            margin-top: 60px; /* Espacio para la barra */
+        }
+        #btn-push:active { transform: scale(0.95); background: rgba(255,255,255,0.3); }
+
+        .player-info { margin-top: 20px; color: #aaa; font-size: 0.9rem; }
+        #connection-status { color: yellow; margin-bottom: 15px; font-size: 0.9rem; }
+        #game-msg { position: absolute; top: 40%; font-size: 3rem; font-weight: bold; text-shadow: 0 0 20px white; display: none; pointer-events: none;}
+    </style>
+</head>
+<body>
+
+    <div id="menu-screen">
+        <h1>NEÓN ONLINE</h1>
+        <div id="connection-status">Estado: Esperando elección...</div>
+        
+        <div id="host-panel">
+            <button onclick="createGame()">CREAR PARTIDA</button>
+            <div id="my-id-display" style="font-size: 1.5rem; color: #00ff88; margin: 10px; display:none;"></div>
+            <p style="font-size:0.8rem; color:#888;">(Comparte el código verde con tu amigo)</p>
+        </div>
+
+        <div style="margin: 20px;">--- O ---</div>
+
+        <div id="join-panel">
+            <input type="text" id="join-id" placeholder="Código de amigo">
+            <button class="secondary" onclick="joinGame()">UNIRSE</button>
+        </div>
+    </div>
+
+    <div id="game-screen">
+        <div id="status-bar">
+            <h2 id="role-display">ESPERANDO...</h2>
+            <div id="progress-bg"><div id="progress-fill"></div></div>
+        </div>
+        
+        <div id="btn-push" ontouchstart="sendClick()" onclick="sendClick()">¡EMPUJA!</div>
+        <div class="player-info">Tú eres: <span id="my-color">...</span></div>
+        <div id="game-msg">¡GANASTE!</div>
+    </div>
+
+    <script>
+        let peer = null;
+        let conn = null;
+        let myRole = null; // 'host' (P1 - Rojo) o 'guest' (P2 - Azul)
+        let score = 50;
+        let gameActive = false;
+
+        // Inicializar PeerJS (Servidor gratuito público)
+        function initPeer() {
+            // Generamos un ID corto aleatorio
+            const cleanId = 'neon-' + Math.floor(Math.random() * 10000);
+            peer = new Peer(cleanId);
+
+            peer.on('open', (id) => {
+                console.log('Mi ID es: ' + id);
+            });
+
+            // Si alguien se conecta a mí (Yo soy HOST)
+            peer.on('connection', (c) => {
+                conn = c;
+                setupConnection();
+                myRole = 'host'; // Rojo
+                startGameUI();
+            });
+        }
+
+        function createGame() {
+            document.getElementById('connection-status').innerText = "Generando código...";
+            initPeer();
+            setTimeout(() => {
+                document.getElementById('my-id-display').style.display = 'block';
+                document.getElementById('my-id-display').innerText = peer.id;
+                document.getElementById('connection-status').innerText = "¡Esperando rival!";
+                document.getElementById('host-panel').style.display = 'block';
+                document.getElementById('join-panel').style.display = 'none';
+            }, 1000);
+        }
+
+        function joinGame() {
+            const destId = document.getElementById('join-id').value.trim();
+            if(!destId) return alert("Escribe el código");
+
+            document.getElementById('connection-status').innerText = "Conectando...";
+            peer = new Peer(); // ID automático para el invitado
+            
+            peer.on('open', () => {
+                conn = peer.connect(destId);
+                conn.on('open', () => {
+                    myRole = 'guest'; // Azul
+                    setupConnection();
+                    startGameUI();
+                });
+            });
+        }
+
+        function setupConnection() {
+            // Escuchar datos del otro jugador
+            conn.on('data', (data) => {
+                if(data.type === 'click') {
+                    // El otro empujó
+                    moveBar(data.role);
+                }
+                if(data.type === 'sync') {
+                    // Sincronizar score (solo host manda esto a veces)
+                    score = data.val;
+                    updateDisplay();
+                }
+                if(data.type === 'restart') {
+                    resetGame();
+                }
+            });
+        }
+
+        function startGameUI() {
+            document.getElementById('menu-screen').style.display = 'none';
+            document.getElementById('game-screen').style.display = 'flex';
+            gameActive = true;
+            
+            const colorText = document.getElementById('my-color');
+            const btn = document.getElementById('btn-push');
+            
+            if(myRole === 'host') {
+                colorText.innerText = "JUGADOR 1 (ROJO)";
+                colorText.style.color = "#ff0055";
+                btn.style.boxShadow = "0 0 30px #ff0055";
+                btn.style.borderColor = "#ff0055";
+            } else {
+                colorText.innerText = "JUGADOR 2 (AZUL)";
+                colorText.style.color = "#00e5ff";
+                btn.style.boxShadow = "0 0 30px #00e5ff";
+                btn.style.borderColor = "#00e5ff";
+            }
+            updateDisplay();
+        }
+
+        // --- LÓGICA DEL JUEGO ---
+
+        function sendClick() {
+            if(!gameActive || !conn) return;
+
+            // 1. Mover localmente (para que se sienta rápido)
+            moveBar(myRole);
+
+            // 2. Avisar al otro
+            conn.send({ type: 'click', role: myRole });
+        }
+
+        function moveBar(whoPushed) {
+            if(!gameActive) return;
+
+            // Si empuja Host (Rojo), score baja. Si empuja Guest (Azul), score sube.
+            if(whoPushed === 'host') score -= 4;
+            else score += 4;
+
+            updateDisplay();
+            checkWin();
+        }
+
+        function updateDisplay() {
+            let displayScore = Math.max(0, Math.min(100, score));
+            document.getElementById('progress-fill').style.width = displayScore + '%';
+        }
+
+        function checkWin() {
+            if(score <= 0) endGame("¡GANA ROJO!", "#ff0055");
+            else if(score >= 100) endGame("¡GANA AZUL!", "#00e5ff");
+        }
+
+        function endGame(text, color) {
+            gameActive = false;
+            const msg = document.getElementById('game-msg');
+            msg.innerText = text;
+            msg.style.color = color;
+            msg.style.display = 'block';
+
+            // Reiniciar en 3 segs
+            setTimeout(() => {
+                if(myRole === 'host') { // Solo el host manda reinicio
+                    conn.send({ type: 'restart' });
+                    resetGame();
+                }
+            }, 3000);
+        }
+
+        function resetGame() {
+            score = 50;
+            gameActive = true;
+            document.getElementById('game-msg').style.display = 'none';
+            updateDisplay();
+        }
+
+    </script>
+</body>
+</html>
