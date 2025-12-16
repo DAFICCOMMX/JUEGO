@@ -19,11 +19,15 @@
 
         button { padding: 15px; font-size: 1rem; cursor: pointer; background: transparent; border: 2px solid #00e5ff; color: #00e5ff; font-weight: bold; margin: 10px; width: 80%; max-width: 300px; border-radius: 5px; transition: 0.2s; }
         button:hover { background: #00e5ff; color: black; }
+        button:disabled { border-color: #555; color: #555; pointer-events: none; }
         
         .btn-red { border-color: #ff0055; color: #ff0055; }
         .btn-red:hover { background: #ff0055; color: white; }
-        
         .btn-start { background: linear-gradient(45deg, #00e5ff, #00ff88); color: black; border: none; font-size: 1.2rem; box-shadow: 0 0 15px #00e5ff; }
+
+        /* HEADER COMÚN */
+        .game-header { position: absolute; top: 0; width: 100%; padding: 10px 0; background: #111; display: flex; justify-content: space-between; align-items: center; z-index: 100;}
+        .back-lobby-btn { font-size: 0.8rem; width: auto; padding: 5px 10px; margin: 0 10px; border: 1px solid #666; color: #ccc; }
 
         /* --- LOBBY --- */
         #lobby-status { color: yellow; margin-bottom: 20px; font-size: 0.9rem; }
@@ -31,19 +35,35 @@
         #guest-msg { display: none; color: #aaa; animation: blink 1.5s infinite; }
         @keyframes blink { 50% { opacity: 0.5; } }
 
-        /* --- JUEGO: NEÓN --- */
+        /* --- JUEGOS SIMPLES --- */
         #neon-bar { width: 100%; height: 20px; background: #333; margin-bottom: 50px; position: relative; }
         #neon-fill { width: 50%; height: 100%; background: linear-gradient(90deg, #ff0055, #00e5ff); transition: width 0.1s; }
         #btn-push { width: 180px; height: 180px; border-radius: 50%; border: 5px solid white; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold; cursor: pointer; background: rgba(255,255,255,0.1); }
-        #btn-push:active { transform: scale(0.95); background: rgba(255,255,255,0.3); }
-
-        /* --- JUEGO: GATO --- */
+        
         #ttt-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; }
         .cell { width: 80px; height: 80px; background: #222; border: 2px solid #444; display: flex; align-items: center; justify-content: center; font-size: 3rem; cursor: pointer; }
+
+        #letter-display { font-size: 8rem; font-weight: bold; color: yellow; text-shadow: 0 0 20px yellow; margin: 20px 0; min-height: 150px; display: flex; align-items: center; justify-content: center; }
+        #basta-main-btn { background: #ff0055; color: white; border: none; font-size: 2rem; padding: 30px; border-radius: 20px; width: 90%; display: none; }
+
+        /* --- JUEGO: UNO (CARTAS) --- */
+        #uno-area { width: 100%; display: flex; flex-direction: column; align-items: center; margin-top: 50px; }
+        #uno-top-card { width: 100px; height: 150px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 3rem; font-weight: bold; border: 4px solid white; box-shadow: 0 0 20px rgba(0,0,0,0.5); margin-bottom: 20px; color: white; text-shadow: 2px 2px 0 #000; position: relative;}
         
-        /* HEADER COMÚN */
-        .game-header { position: absolute; top: 0; width: 100%; padding: 10px 0; background: #111; display: flex; justify-content: space-between; align-items: center; z-index: 100;}
-        .back-lobby-btn { font-size: 0.8rem; width: auto; padding: 5px 10px; margin: 0 10px; border: 1px solid #666; color: #ccc; }
+        #uno-hand { display: flex; gap: 5px; overflow-x: auto; width: 95%; padding: 10px; justify-content: center; min-height: 120px; }
+        .card { width: 60px; height: 90px; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold; cursor: pointer; color: white; text-shadow: 1px 1px 0 #000; border: 2px solid rgba(255,255,255,0.5); flex-shrink: 0; transition: transform 0.2s; }
+        .card:hover { transform: translateY(-10px); z-index: 10; }
+        
+        /* Colores UNO */
+        .card-R { background: #ff5555; }
+        .card-B { background: #5555ff; }
+        .card-G { background: #55aa55; }
+        .card-Y { background: #ffaa00; }
+        
+        #uno-status { font-size: 1.2rem; margin-bottom: 10px; }
+        #uno-opponent { color: #aaa; margin-bottom: 10px; }
+        .turn-active { color: #00ff88; font-weight: bold; text-shadow: 0 0 10px #00ff88; }
+
     </style>
 </head>
 <body>
@@ -59,9 +79,7 @@
     <div id="connect-screen" class="screen">
         <h1 style="text-shadow: 0 0 10px #00e5ff;">CONEXIÓN</h1>
         <div id="welcome-player" style="color:#00e5ff; margin-bottom:20px; font-weight:bold;"></div>
-        
         <div id="conn-status" style="color:#aaa; margin-bottom:10px;">Elige tu rol:</div>
-        
         <button onclick="setupHost()">CREAR SALA (HOST)</button>
         <div style="margin:10px;">- O -</div>
         <input type="text" id="join-id" placeholder="Código de la Sala" style="margin-bottom:5px;">
@@ -77,31 +95,22 @@
             <p style="color:#00ff88;">ELIGE EL JUEGO:</p>
             <button onclick="selectGame('neon')">1. Duelo de Neón</button>
             <button onclick="selectGame('tictac')">2. Gato (X vs O)</button>
+            <button onclick="selectGame('basta')" style="border-color:yellow; color:yellow;">3. Basta (Stop)</button>
+            <button onclick="selectGame('uno')" style="border-color:orange; color:orange;">4. Cartas UNO (Beta)</button>
         </div>
 
-        <div id="guest-msg">
-            Tu amigo está eligiendo juego...
-        </div>
+        <div id="guest-msg">Tu amigo está eligiendo juego...</div>
     </div>
 
     <div id="game-neon" class="screen">
-        <div class="game-header">
-            <button class="back-lobby-btn" onclick="returnToLobby()">⬅ SALA</button>
-            <span id="neon-role-txt">...</span>
-            <div style="width:50px;"></div>
-        </div>
+        <div class="game-header"><button class="back-lobby-btn" onclick="returnToLobby()">⬅ SALA</button><span id="neon-role-txt">...</span><div style="width:50px;"></div></div>
         <div id="neon-bar"><div id="neon-fill"></div></div>
         <div id="btn-push" ontouchstart="sendNeonPush()" onclick="sendNeonPush()">¡EMPUJA!</div>
-        <div id="neon-msg" style="margin-top:20px; font-size:1.5rem; font-weight:bold;"></div>
     </div>
 
     <div id="game-tictac" class="screen">
-        <div class="game-header">
-            <button class="back-lobby-btn" onclick="returnToLobby()">⬅ SALA</button>
-            <span id="ttt-role-txt" style="font-size:0.9rem;">...</span>
-            <div style="width:50px;"></div>
-        </div>
-        <div id="ttt-turn-msg" style="margin-top:60px; color:#aaa;">Esperando...</div>
+        <div class="game-header"><button class="back-lobby-btn" onclick="returnToLobby()">⬅ SALA</button><span id="ttt-role-txt">...</span><div style="width:50px;"></div></div>
+        <div id="ttt-turn-msg" style="margin-top:60px; color:#aaa;">...</div>
         <div id="ttt-board">
             <div class="cell" onclick="sendTTTMove(0)"></div><div class="cell" onclick="sendTTTMove(1)"></div><div class="cell" onclick="sendTTTMove(2)"></div>
             <div class="cell" onclick="sendTTTMove(3)"></div><div class="cell" onclick="sendTTTMove(4)"></div><div class="cell" onclick="sendTTTMove(5)"></div>
@@ -109,261 +118,305 @@
         </div>
     </div>
 
-    <script>
-        /* --- VARIABLES GLOBALES --- */
-        let peer, conn;
-        let myRole = ''; // 'host' o 'guest'
-        let myName = "Jugador";
-        let opponentName = "Rival";
+    <div id="game-basta" class="screen">
+        <div class="game-header"><button class="back-lobby-btn" onclick="returnToLobby()">⬅ SALA</button><span style="color:yellow;">BASTA</span><div style="width:50px;"></div></div>
+        <div id="letter-display">?</div>
+        <button id="spin-btn" onclick="hostSpinLetter()" style="border-color:yellow; color:yellow;">GIRAR LETRA</button>
+        <button id="basta-main-btn" onclick="declareBasta()">¡BASTA!</button>
+    </div>
+
+    <div id="game-uno" class="screen">
+        <div class="game-header"><button class="back-lobby-btn" onclick="returnToLobby()">⬅ SALA</button><span style="color:orange;">UNO LITE</span><div style="width:50px;"></div></div>
         
-        /* --- 0. IDENTIFICACIÓN --- */
+        <div id="uno-area">
+            <div id="uno-opponent">Rival tiene: 7 cartas</div>
+            
+            <div style="position:relative;">
+                <div style="font-size:0.8rem; color:#888; margin-bottom:5px;">MESA</div>
+                <div id="uno-top-card" class="card-R">5</div>
+            </div>
+
+            <div id="uno-status">Tu turno</div>
+            
+            <button id="uno-draw-btn" onclick="unoDrawCard()" style="padding:10px; font-size:0.9rem; width:auto;">+ ROBAR CARTA</button>
+            
+            <div style="width:100%; text-align:left; padding-left:20px; font-size:0.8rem; color:#888; margin-top:10px;">TU MANO:</div>
+            <div id="uno-hand">
+                </div>
+        </div>
+    </div>
+
+    <script>
+        /* --- CORE --- */
+        let peer, conn, myRole = '', myName = "Jugador", opponentName = "Rival";
+        
         function saveMyName() {
-            const input = document.getElementById('my-name-input').value.trim();
-            if(input.length > 0) myName = input;
-            
+            myName = document.getElementById('my-name-input').value.trim() || "Jugador";
             document.getElementById('welcome-player').innerText = "Hola, " + myName;
-            
-            // Cambiar pantalla
             document.getElementById('id-screen').classList.remove('active');
             document.getElementById('connect-screen').classList.add('active');
         }
 
-        /* --- 1. LÓGICA DE CONEXIÓN (P2P) --- */
         function setupHost() {
-            document.getElementById('conn-status').innerText = "Creando sala...";
             const code = Math.floor(Math.random() * 9000) + 1000;
+            document.getElementById('conn-status').innerText = "Creando sala...";
             peer = new Peer('sala-' + code);
-            
             peer.on('open', (id) => {
-                document.getElementById('conn-status').innerHTML = `TU CÓDIGO: <b style="font-size:2rem; color:#00ff88;">${code}</b><br>Pásaselo a tu amigo.`;
-                // Ocultar botones de crear/unirse
+                document.getElementById('conn-status').innerHTML = `TU CÓDIGO: <b style="font-size:2rem; color:#00ff88;">${code}</b>`;
                 document.querySelector('#connect-screen button').style.display = 'none';
                 document.querySelector('#connect-screen input').style.display = 'none';
                 document.querySelector('.btn-red').style.display = 'none';
             });
-
-            peer.on('connection', (c) => {
-                conn = c;
-                myRole = 'host';
-                setupConnectionListeners();
-            });
+            peer.on('connection', (c) => { conn = c; myRole = 'host'; setupConn(); });
         }
 
         function joinGame() {
             const code = document.getElementById('join-id').value;
-            if(!code) return alert("Pon el código");
-            
-            document.getElementById('conn-status').innerText = "Buscando sala...";
+            if(!code) return alert("Código requerido");
+            document.getElementById('conn-status').innerText = "Conectando...";
             peer = new Peer();
             peer.on('open', () => {
                 conn = peer.connect('sala-' + code);
-                conn.on('open', () => {
-                    myRole = 'guest';
-                    setupConnectionListeners();
-                });
-                setTimeout(() => { if(!conn.open) alert("No se encontró la sala"); }, 3000);
+                conn.on('open', () => { myRole = 'guest'; setupConn(); });
+                setTimeout(() => { if(!conn.open) alert("Sala no encontrada"); }, 3000);
             });
         }
 
-        function setupConnectionListeners() {
-            // 1. Enviar mi nombre inmediatamente al conectar
-            conn.send({ type: 'NAME_HANDSHAKE', name: myName });
-
-            conn.on('data', (data) => {
-                // RECIBIR NOMBRE
-                if(data.type === 'NAME_HANDSHAKE') {
-                    opponentName = data.name;
-                    updateLobbyNames();
-                    // Si soy Host, mando al lobby ahora que sé el nombre
-                    if(myRole === 'host') goToLobby(); 
-                    // Si soy Guest, espero a que el Host me mande GOTO_LOBBY (o voy directo)
-                    else goToLobby();
-                }
-
-                // COMANDOS DE NAVEGACIÓN
-                if(data.type === 'GOTO_LOBBY') goToLobby();
-                if(data.type === 'START_GAME') launchGameUI(data.game);
+        function setupConn() {
+            conn.send({ type: 'NAME', name: myName });
+            conn.on('data', (d) => {
+                if(d.type === 'NAME') { opponentName = d.name; updateLobby(); goToLobby(); }
+                if(d.type === 'LOBBY') goToLobby();
+                if(d.type === 'START') launchGame(d.game);
+                if(d.type === 'WIN') showWin(d.msg, d.color);
                 
-                // COMANDOS DE JUEGO
-                if(data.type === 'NEON_UPDATE') updateNeonUI(data.val);
-                if(data.type === 'TTT_UPDATE') updateTTTUI(data.board, data.turn);
-                if(data.type === 'WINNER') showWinner(data.msg, data.color);
+                // Game Specific
+                if(d.type === 'NEON') updateNeon(d.val);
+                if(d.type === 'TTT') updateTTT(d.board, d.turn);
+                if(d.type === 'BASTA') updateBasta(d.char);
+                if(d.type === 'UNO_INIT') startUnoGame(d.top, d.hand);
+                if(d.type === 'UNO_UPDATE') updateUnoState(d.top, d.oppCount, d.turn);
             });
         }
 
-        function updateLobbyNames() {
-            const vsText = `${myName} (Tú) vs ${opponentName}`;
-            document.getElementById('vs-display').innerText = vsText;
-        }
-
-        /* --- 2. NAVEGACIÓN DE SALA --- */
+        function updateLobby() { document.getElementById('vs-display').innerText = `${myName} vs ${opponentName}`; }
         function goToLobby() {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById('lobby-screen').classList.add('active');
-            
-            updateLobbyNames();
-
-            if(myRole === 'host') {
-                document.getElementById('host-controls').style.display = 'flex';
-                document.getElementById('lobby-status').innerText = "Elige un juego:";
-            } else {
-                document.getElementById('guest-msg').style.display = 'block';
-                document.getElementById('lobby-status').innerText = "Conectado con " + opponentName;
-            }
+            hideAll(); document.getElementById('lobby-screen').classList.add('active');
+            document.getElementById('host-controls').style.display = myRole === 'host' ? 'flex' : 'none';
+            document.getElementById('guest-msg').style.display = myRole === 'host' ? 'none' : 'block';
+        }
+        function hideAll() { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); }
+        function selectGame(g) { if(myRole === 'host') { conn.send({type:'START', game:g}); launchGame(g); initGameLogic(g); } }
+        function launchGame(g) {
+            hideAll();
+            if(g === 'neon') { document.getElementById('game-neon').classList.add('active'); setupNeon(); }
+            if(g === 'tictac') { document.getElementById('game-tictac').classList.add('active'); setupTTT(); }
+            if(g === 'basta') { document.getElementById('game-basta').classList.add('active'); setupBasta(); }
+            if(g === 'uno') { document.getElementById('game-uno').classList.add('active'); } // Uno espera init data
+        }
+        function returnToLobby() { if(myRole==='host') { conn.send({type:'LOBBY'}); goToLobby(); } else alert("Solo el Host puede salir"); }
+        function showWin(m, c) { alert(m); if(myRole==='host') setTimeout(() => initGameLogic(getCurrentGame()), 1000); }
+        function getCurrentGame() { 
+            if(document.getElementById('game-neon').classList.contains('active')) return 'neon';
+            if(document.getElementById('game-tictac').classList.contains('active')) return 'tictac';
+            if(document.getElementById('game-basta').classList.contains('active')) return 'basta';
+            if(document.getElementById('game-uno').classList.contains('active')) return 'uno';
+        }
+        function initGameLogic(g) {
+            if(g==='neon') { conn.send({type:'NEON', val:50}); updateNeon(50); }
+            if(g==='tictac') { conn.send({type:'TTT', board:Array(9).fill(null), turn:'host'}); updateTTT(Array(9).fill(null), 'host'); }
+            if(g==='basta') { conn.send({type:'BASTA', char:'?'}); updateBasta('?'); }
+            if(g==='uno') { hostInitUno(); }
         }
 
-        function selectGame(gameName) {
-            if(myRole !== 'host') return;
-            conn.send({ type: 'START_GAME', game: gameName });
-            launchGameUI(gameName);
-            if(gameName === 'neon') resetNeonLogic();
-            if(gameName === 'tictac') resetTTTLogic();
-        }
-
-        function launchGameUI(gameName) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            if(gameName === 'neon') {
-                document.getElementById('game-neon').classList.add('active');
-                setupNeonVisuals();
-            }
-            if(gameName === 'tictac') {
-                document.getElementById('game-tictac').classList.add('active');
-                setupTTTVisuals();
-            }
-        }
-
-        function returnToLobby() {
-            if(myRole === 'guest') return alert("Solo el Host (" + opponentName + ") puede volver al menú.");
-            conn.send({ type: 'GOTO_LOBBY' });
-            goToLobby();
-        }
-
-        function showWinner(msg, color) {
-            alert(msg);
-            if(myRole === 'host') {
-                setTimeout(() => {
-                    if(document.getElementById('game-neon').classList.contains('active')) resetNeonLogic();
-                    if(document.getElementById('game-tictac').classList.contains('active')) resetTTTLogic();
-                }, 1000);
-            }
-        }
-
-        /* ============================
-           JUEGO 1: DUELO DE NEÓN
-           ============================ */
+        /* --- JUEGOS LOGIC --- */
+        // NEON
         let neonScore = 50;
+        function setupNeon() { document.getElementById('neon-role-txt').innerText = myRole==='host'?"ERES ROJO":"ERES AZUL"; }
+        function sendNeonPush() { neonScore += (myRole==='host'?-5:5); conn.send({type:'NEON', val:neonScore}); updateNeon(neonScore); checkNeonWin(); }
+        function updateNeon(v) { neonScore=v; document.getElementById('neon-fill').style.width = Math.max(0,Math.min(100,v))+'%'; }
+        function checkNeonWin() { if(neonScore<=0) bcastWin(myName, '#ff0055'); if(neonScore>=100) bcastWin(opponentName, '#00e5ff'); }
 
-        function setupNeonVisuals() {
-            // Mostrar nombres reales en la barra
-            const roleMsg = myRole === 'host' ? "ERES ROJO" : "ERES AZUL";
-            document.getElementById('neon-role-txt').innerText = roleMsg;
-            document.getElementById('neon-role-txt').style.color = myRole === 'host' ? "#ff0055" : "#00e5ff";
-            document.getElementById('btn-push').style.borderColor = myRole === 'host' ? "#ff0055" : "#00e5ff";
-            updateNeonUI(50);
+        // TTT
+        let tttBoard=[], tttTurn='host';
+        function setupTTT() { document.getElementById('ttt-role-txt').innerText = myRole==='host'?"Eres X":"Eres O"; }
+        function sendTTTMove(i) {
+            if(tttTurn!==myRole || tttBoard[i]) return;
+            tttBoard[i]=myRole; tttTurn=myRole==='host'?'guest':'host';
+            conn.send({type:'TTT', board:tttBoard, turn:tttTurn}); updateTTT(tttBoard, tttTurn); checkTTTWin();
+        }
+        function updateTTT(b,t) {
+            tttBoard=b; tttTurn=t;
+            document.querySelectorAll('.cell').forEach((c,i)=>{ c.innerText=b[i]==='host'?'X':(b[i]==='guest'?'O':''); c.style.color=b[i]==='host'?'#ff0055':'#00e5ff'; });
+            document.getElementById('ttt-turn-msg').innerText = t===myRole?"TU TURNO":("Turno de "+opponentName);
+        }
+        function checkTTTWin() {
+            const wins=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+            let w=null; wins.forEach(c=>{if(tttBoard[c[0]]&&tttBoard[c[0]]===tttBoard[c[1]]&&tttBoard[c[0]]===tttBoard[c[2]]) w=tttBoard[c[0]];});
+            if(w) bcastWin(w===myRole?myName:opponentName, '#fff'); else if(!tttBoard.includes(null)) bcastWin("EMPATE", '#fff');
         }
 
-        function resetNeonLogic() {
-            neonScore = 50;
-            broadcastNeon();
+        // BASTA
+        function setupBasta() { document.getElementById('spin-btn').style.display=myRole==='host'?'inline':'none'; document.getElementById('basta-main-btn').style.display='none'; }
+        function hostSpinLetter() {
+            let ch="ABCDEFGHIJKLMNOPQRSTUVWXYZ"; let i=0, inter=setInterval(()=>{
+                let c = ch[Math.floor(Math.random()*ch.length)]; conn.send({type:'BASTA', char:c}); updateBasta(c); i++;
+                if(i>15) { clearInterval(inter); conn.send({type:'BASTA', char:c+'_OK'}); updateBasta(c+'_OK'); }
+            },100);
         }
-
-        function sendNeonPush() {
-            let change = myRole === 'host' ? -5 : 5;
-            neonScore += change;
-            conn.send({ type: 'NEON_UPDATE', val: neonScore });
-            updateNeonUI(neonScore);
-            checkNeonWin();
+        function updateBasta(c) {
+            if(c.includes('_OK')) { document.getElementById('letter-display').innerText=c.split('_')[0]; document.getElementById('letter-display').style.color='#00ff00'; document.getElementById('basta-main-btn').style.display='inline'; document.getElementById('basta-main-btn').disabled=false; }
+            else { document.getElementById('letter-display').innerText=c; document.getElementById('letter-display').style.color='yellow'; }
         }
+        function declareBasta() { document.getElementById('basta-main-btn').disabled=true; bcastWin("Punto para "+myName, '#fff'); }
 
-        function updateNeonUI(val) {
-            neonScore = val;
-            let p = Math.max(0, Math.min(100, val));
-            document.getElementById('neon-fill').style.width = p + '%';
-        }
+        // UNO (LITE)
+        let myHand = [], topCard = {}, unoTurn = 'host', oppCount = 7;
+        const colors = ['R','B','G','Y']; // Red, Blue, Green, Yellow
 
-        function checkNeonWin() {
-            if(neonScore <= 0) broadcastWin("GANÓ " + (myRole === 'host' ? myName : opponentName), "#ff0055");
-            if(neonScore >= 100) broadcastWin("GANÓ " + (myRole === 'guest' ? myName : opponentName), "#00e5ff");
-        }
-
-        /* ============================
-           JUEGO 2: GATO (TIC TAC TOE)
-           ============================ */
-        let tttBoard = Array(9).fill(null);
-        let tttTurn = 'host';
-
-        function setupTTTVisuals() {
-            document.getElementById('ttt-role-txt').innerText = myRole === 'host' ? "Tú: X (Rojo)" : "Tú: O (Azul)";
-            updateTTTUI(Array(9).fill(null), 'host');
-        }
-
-        function resetTTTLogic() {
-            tttBoard = Array(9).fill(null);
-            tttTurn = 'host';
-            conn.send({ type: 'TTT_UPDATE', board: tttBoard, turn: tttTurn });
-            updateTTTUI(tttBoard, tttTurn);
-        }
-
-        function sendTTTMove(idx) {
-            if(myRole !== tttTurn) return; 
-            if(tttBoard[idx] !== null) return;
-
-            tttBoard[idx] = myRole;
-            tttTurn = myRole === 'host' ? 'guest' : 'host';
-
-            conn.send({ type: 'TTT_UPDATE', board: tttBoard, turn: tttTurn });
-            updateTTTUI(tttBoard, tttTurn);
-            checkTTTWinLocal();
-        }
-
-        function updateTTTUI(boardData, turnData) {
-            tttBoard = boardData;
-            tttTurn = turnData;
+        function hostInitUno() {
+            // Generar manos iniciales
+            const h1 = genHand(7);
+            const h2 = genHand(7);
+            const top = genCard();
+            myHand = h1; 
+            topCard = top;
+            unoTurn = 'host';
+            oppCount = 7;
             
-            const cells = document.querySelectorAll('.cell');
-            cells.forEach((c, i) => {
-                c.innerText = '';
-                c.style.background = '#222';
-                if(boardData[i] === 'host') { c.innerText = 'X'; c.style.color = '#ff0055'; }
-                if(boardData[i] === 'guest') { c.innerText = 'O'; c.style.color = '#00e5ff'; }
-            });
-
-            const msg = document.getElementById('ttt-turn-msg');
-            // Lógica para mostrar nombre del turno
-            const turnName = tttTurn === myRole ? "TU TURNO" : ("Turno de " + opponentName);
-            msg.innerText = turnName;
-            msg.style.color = tttTurn === myRole ? "white" : "#555";
+            // Enviar a Guest sus cartas
+            conn.send({ type: 'UNO_INIT', hand: h2, top: top });
+            // Renderizar Host
+            renderUno();
         }
 
-        function checkTTTWinLocal() {
-            const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
-            let winner = null;
-            wins.forEach(combo => {
-                const [a,b,c] = combo;
-                if(tttBoard[a] && tttBoard[a] === tttBoard[b] && tttBoard[a] === tttBoard[c]) {
-                    winner = tttBoard[a];
-                }
-            });
+        function startUnoGame(top, hand) {
+            myHand = hand;
+            topCard = top;
+            unoTurn = 'host'; // Siempre empieza Host
+            oppCount = 7;
+            renderUno();
+        }
 
-            if(winner) {
-                // Usamos nombres reales para anunciar ganador
-                const winnerName = winner === myRole ? myName : opponentName;
-                const winnerColor = winner === 'host' ? '#ff0055' : '#00e5ff';
-                broadcastWin("GANÓ " + winnerName, winnerColor);
-            } else if(!tttBoard.includes(null)) {
-                broadcastWin("EMPATE", "#fff");
+        function genCard() {
+            const c = colors[Math.floor(Math.random()*4)];
+            const r = Math.random();
+            let v = Math.floor(Math.random()*10); // 0-9
+            if(r > 0.9) v = "+2"; // 10% chance de +2
+            return { color: c, val: v };
+        }
+        function genHand(n) { let a=[]; for(i=0;i<n;i++) a.push(genCard()); return a; }
+
+        function renderUno() {
+            // Render Top Card
+            const topEl = document.getElementById('uno-top-card');
+            topEl.className = `card-${topCard.color}`;
+            topEl.innerText = topCard.val;
+
+            // Render Status
+            const statusEl = document.getElementById('uno-status');
+            const oppEl = document.getElementById('uno-opponent');
+            oppEl.innerText = `${opponentName} tiene: ${oppCount} cartas`;
+            
+            if(unoTurn === myRole) {
+                statusEl.innerText = "¡TU TURNO!";
+                statusEl.className = "turn-active";
+                document.getElementById('uno-draw-btn').disabled = false;
+            } else {
+                statusEl.innerText = `Turno de ${opponentName}`;
+                statusEl.className = "";
+                document.getElementById('uno-draw-btn').disabled = true;
             }
+
+            // Render Hand
+            const handDiv = document.getElementById('uno-hand');
+            handDiv.innerHTML = '';
+            myHand.forEach((c, idx) => {
+                const d = document.createElement('div');
+                d.className = `card card-${c.color}`;
+                d.innerText = c.val;
+                d.onclick = () => playUnoCard(idx);
+                handDiv.appendChild(d);
+            });
         }
 
-        /* --- UTILIDADES --- */
-        function broadcastWin(msg, color) {
-            showWinner(msg, color);
-            conn.send({ type: 'WINNER', msg: msg, color: color });
+        function playUnoCard(idx) {
+            if(unoTurn !== myRole) return;
+            const c = myHand[idx];
+            
+            // Validar jugada (Color o Valor o +2 sobre +2)
+            if(c.color !== topCard.color && c.val !== topCard.val) return alert("Esa carta no coincide");
+
+            // Jugar
+            topCard = c;
+            myHand.splice(idx, 1);
+            
+            let nextTurn = myRole === 'host' ? 'guest' : 'host';
+            
+            // Lógica +2
+            if(c.val === "+2") {
+                // Al tirar +2, el rival roba 2 y pierde turno? En UNO normal sí. 
+                // Para simplificar aqui: Rival roba 2 cartas pero SI juega (o podemos saltarlo).
+                // Vamos a hacer que roba 2 y sigue siendo mi turno? No, muy roto.
+                // Rival roba 2 y ES su turno. (El código de robar lo gestiona el rival al recibir el update)
+                // Espera, para sincronizar manos es complejo. 
+                // Mejor: Si tiro +2, mando flag 'DRAW_2'.
+            }
+
+            // Enviar estado al rival
+            conn.send({ 
+                type: 'UNO_UPDATE', 
+                top: topCard, 
+                oppCount: myHand.length, 
+                turn: nextTurn,
+                effect: c.val === "+2" ? 'DRAW_2' : null
+            });
+
+            unoTurn = nextTurn;
+            renderUno();
+            checkUnoWin();
         }
-        function broadcastNeon() { 
-            conn.send({ type: 'NEON_UPDATE', val: 50 });
-            updateNeonUI(50);
+
+        function unoDrawCard() {
+            if(unoTurn !== myRole) return;
+            const newCard = genCard();
+            myHand.push(newCard);
+            // Pasar turno aunque robes? Regla casera: Robas y pasas.
+            let nextTurn = myRole === 'host' ? 'guest' : 'host';
+            
+            conn.send({ 
+                type: 'UNO_UPDATE', 
+                top: topCard, 
+                oppCount: myHand.length, 
+                turn: nextTurn 
+            });
+            unoTurn = nextTurn;
+            renderUno();
         }
+
+        function updateUnoState(top, count, turn, effect) {
+            topCard = top;
+            oppCount = count;
+            unoTurn = turn;
+            
+            // Si me tiraron un +2
+            if(effect === 'DRAW_2' && turn === myRole) {
+                alert("¡Te tiraron un +2!");
+                myHand.push(genCard());
+                myHand.push(genCard());
+                // En UNO real pierdes turno, aqui te dejo jugar para no frustrar.
+            }
+
+            renderUno();
+            checkUnoWin(); // Check si rival ganó (count 0)
+        }
+
+        function checkUnoWin() {
+            if(myHand.length === 0) bcastWin(myName + " GANÓ UNO!", '#ffaa00');
+            if(oppCount === 0) bcastWin(opponentName + " GANÓ UNO!", '#ffaa00');
+        }
+
+        function bcastWin(m, c) { showWin(m,c); if(myRole==='host') conn.send({type:'WIN', msg:m, color:c}); }
 
     </script>
 </body>
